@@ -294,14 +294,10 @@ def brute_tlds(res, domain, verbose=False, thread_num=None):
             print_status(f'Trying: {domain_main}.{tld}')
         for cc in cctld:
             print_status(f'Trying: {domain_main}.{cc}')
-        for cc, tld in zip(cctld, total_tlds):
-            print_status(f'Trying: {domain_main}.{cc}.{tld}')
     try:
         with futures.ThreadPoolExecutor(max_workers=thread_num) as executor:
             future_results = {**{executor.submit(res.get_ip, f'{domain_main}.{tld}'): tld for tld in total_tlds},
-                              **{executor.submit(res.get_ip, f'{domain_main}.{cc}'): cc for cc in cctld},
-                              **{executor.submit(res.get_ip, f'{domain_main}.{cc}.{tld}'): (cc, tld) for (cc, tld) in
-                                 zip(cctld, total_tlds)}}
+                              **{executor.submit(res.get_ip, f'{domain_main}.{cc}'): cc for cc in cctld}}
 
             brtdata = [future.result() for future in futures.as_completed(future_results)]
             brtdata = [result for result in brtdata if len(result) > 0]
