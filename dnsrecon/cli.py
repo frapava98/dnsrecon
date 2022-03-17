@@ -436,6 +436,7 @@ def brute_domain(res, dictfile, dom, filter_=None, verbose=False, ignore_wildcar
     if os.path.isfile(dictfile):
         with open(dictfile) as fd:
             targets = [f"{line.strip()}.{dom.strip()}" for line in fd]
+            targets += [f"{line.strip()}-{dom.strip()}" for line in fd]
             if verbose:
                 for target in targets:
                     print_status(f"Trying {target}")
