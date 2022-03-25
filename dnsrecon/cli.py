@@ -438,7 +438,15 @@ def brute_domain(res, dictfile, dom, filter_=None, verbose=False, ignore_wildcar
         with open(dictfile) as fd:
             targets += [f"{line.strip()}.{dom.strip()}" for line in fd]
         with open(dictfile) as fd:
-            targets += [f"{line.strip()}-{dom.strip()}" for line in fd]
+            for line in fd:
+                tmp = f"{line.strip()}-{dom.strip()}".split('.')
+                too_long = False
+                for elem in tmp:
+                    if len(elem) > 63:
+                        too_long = True
+                        print(elem)
+                if not too_long:
+                    targets.append(f"{line.strip()}-{dom.strip()}")
         if verbose:
             for target in targets:
                 print_status(f"Trying {target}")
