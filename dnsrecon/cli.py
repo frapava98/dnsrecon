@@ -282,7 +282,10 @@ def brute_tlds(res, domain, verbose=False, thread_num=None):
              'za', 'zm', 'zw']
 
     total_tlds = []
-    res = requests.get('http://data.iana.org/TLD/tlds-alpha-by-domain.txt')
+    try:
+        res = requests.get('http://data.iana.org/TLD/tlds-alpha-by-domain.txt')
+    except Exception as ex:
+        exit(3)
     for tld in res.text.split('\n'):
         if '#' not in tld.strip() and tld.strip() != '' and tld.strip() not in cctld:
             total_tlds.append(tld.strip().lower())
