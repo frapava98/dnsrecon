@@ -50,6 +50,7 @@ import dns.zone
 import dns.rdata
 import dns.flags
 import json
+import requests
 from dns.dnssec import algorithm_to_text
 from dnsrecon.lib.crtenum import scrape_crtsh
 from dnsrecon.lib.bingenum import *
@@ -251,7 +252,7 @@ def brute_tlds(res, domain, verbose=False, thread_num=None):
     # https://en.wikipedia.org/wiki/Country_code_top-level_domain#Types
     # https://www.iana.org/domains
     # Taken from http://data.iana.org/TLD/tlds-alpha-by-domain.txt
-    itld = ['arpa']
+    '''itld = ['arpa']
 
     # Generic TLD
     gtld = ['co', 'com', 'info', 'net', 'org']
@@ -261,7 +262,7 @@ def brute_tlds(res, domain, verbose=False, thread_num=None):
 
     # Sponsored TLD
     stld = ['aero', 'app', 'asia', 'cat', 'coop', 'dev', 'edu', 'gov', 'int', 'jobs', 'mil', 'mobi', 'museum', 'post',
-            'tel', 'travel', 'xxx']
+            'tel', 'travel', 'xxx']'''
 
     # Country Code TLD
     cctld = ['ac', 'ad', 'ae', 'af', 'ag', 'ai', 'al', 'am', 'an', 'ao', 'aq', 'ar', 'as', 'at', 'au', 'aw', 'ax', 'az',
@@ -277,17 +278,21 @@ def brute_tlds(res, domain, verbose=False, thread_num=None):
              'pk', 'pl', 'pm', 'pn', 'pr', 'ps', 'pt', 'pw', 'py', 'qa', 're', 'ro', 'rs', 'ru', 'rw', 'sa', 'sb', 'sc',
              'sd', 'se', 'sg', 'sh', 'si', 'sj', 'sk', 'sl', 'sm', 'sn', 'so', 'sr', 'ss', 'st', 'su', 'sv', 'sx', 'sy',
              'sz', 'tc', 'td', 'tf', 'tg', 'th', 'tj', 'tk', 'tl', 'tm', 'tn', 'to', 'tp', 'tr', 'tt', 'tv', 'tw', 'tz',
-             'ua', 'ug', 'uk', 'um', 'us', 'uy', 'uz', 'va', 'vc', 've', 'vg', 'vi', 'vn', 'vu', 'wf', 'ws', 'yt', 'za',
-             'zm', 'zw']
+             'ua', 'ug', 'uk', 'um', 'us', 'uy', 'uz', 'va', 'vc', 've', 'vg', 'vi', 'vn', 'vu', 'wf', 'ws', 'ye', 'yt',
+             'za', 'zm', 'zw']
+
+    total_tlds = []
+    res = requests.get('http://data.iana.org/TLD/tlds-alpha-by-domain.txt')
+    for tld in res.text.split('\n'):
+        if '#' not in tld.strip() and tld.strip() != '' and tld.strip() not in cctld:
+            total_tlds.append(tld.strip().lower())
 
     domain_main = domain.split(".")[0]
 
     # Let the user know how long it could take
-    all_tlds_len = len(itld) + len(gtld) + len(grtld) + len(stld) + len(cctld)
+    all_tlds_len = len(total_tlds) + len(cctld)
     duration = time.strftime('%H:%M:%S', time.gmtime(all_tlds_len / 3))
     print_status(f"The operation could take up to: {duration}")
-
-    total_tlds = list(set(itld + gtld + grtld + stld))
 
     if verbose:
         for tld in total_tlds:
