@@ -257,7 +257,7 @@ def brute_tlds(res, domain, verbose=False, thread_num=None):
     gtld = ['co', 'com', 'info', 'net', 'org']
 
     # Generic restricted TLD
-    grtld = ['biz', 'name', 'online', 'pro', 'shop', 'site', 'top', 'xyz', 'cloud']
+    grtld = ['biz', 'name', 'online', 'pro', 'shop', 'site', 'top', 'xyz', 'cloud', 'store']
 
     # Sponsored TLD
     stld = ['aero', 'app', 'asia', 'cat', 'coop', 'dev', 'edu', 'gov', 'int', 'jobs', 'mil', 'mobi', 'museum', 'post',
