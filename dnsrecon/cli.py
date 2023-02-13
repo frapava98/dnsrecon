@@ -287,7 +287,7 @@ def brute_tlds(res, domain, verbose=False, thread_num=None):
     except Exception as ex:
         exit(3)
     for tld in resp.text.split('\n'):
-        if '#' not in tld.strip() and tld.strip() != '' and tld.strip() not in cctld:
+        if '#' not in tld.strip() and tld.strip() != '' and tld.strip().lower() not in cctld:
             total_tlds.append(tld.strip().lower())
 
     domain_main = domain.split(".")[0]
