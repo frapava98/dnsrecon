@@ -240,19 +240,6 @@ def check_nxdomain_hijack(nameserver):
     print_error("This server has been removed from the name server list!")
     return True
 
-def get_list(url, file):
-    try:
-        resp = requests.get(url)
-        out_list = open(file, 'w')
-        out_list.write(resp.text)
-        out_list.close()
-        return resp.text
-    except:
-        in_list = open(file, 'r')
-        res = ''
-        for line in in_list:
-            res += line
-        return res
 
 def brute_tlds(res, domain, verbose=False, thread_num=None):
     """
@@ -265,67 +252,65 @@ def brute_tlds(res, domain, verbose=False, thread_num=None):
     # https://en.wikipedia.org/wiki/Country_code_top-level_domain#Types
     # https://www.iana.org/domains
     # Taken from http://data.iana.org/TLD/tlds-alpha-by-domain.txt
+    '''itld = ['arpa']
 
-    # ALL TLD
-    all_tlds = []
-    tlds_list = get_list('https://raw.githubusercontent.com/publicsuffix/list/master/public_suffix_list.dat', 'all_tld.txt')
-    for tld in tlds_list.split('\n'):
-        if '/' not in tld.strip() and tld.strip() != '':
-            all_tlds.append(tld.strip().lower().replace('*.',''))
+    # Generic TLD
+    gtld = ['co', 'com', 'info', 'net', 'org']
 
-    # Top level domains
-    tlds_list = get_list('http://data.iana.org/TLD/tlds-alpha-by-domain.txt', 'tld.txt')
-    for tld in tlds_list.split('\n'):
-        if '#' not in tld.strip() and tld.strip() != '':
-            tmp = tld.strip().lower()
-            if 'xn--' in tmp: tmp = tmp.replace('xn--','').encode().decode('punycode')
-            if tmp not in all_tlds:
-                all_tlds.append(tmp)
+    # Generic restricted TLD
+    grtld = ['biz', 'name', 'online', 'pro', 'shop', 'site', 'top', 'xyz', 'cloud', 'store']
 
-    # Second level domains
-    slds_list = get_list('https://raw.githubusercontent.com/gavingmiller/second-level-domains/master/SLDs.csv','sld.txt')
-    for sld in slds_list.split('\n'):
-        if sld.strip() != '':
-            tmp = sld.strip().lower().split(',')[1]
-            if tmp[0] == '.': tmp = tmp[1:]
-            if tmp not in all_tlds:
-                all_tlds.append(tmp)
+    # Sponsored TLD
+    stld = ['aero', 'app', 'asia', 'cat', 'coop', 'dev', 'edu', 'gov', 'int', 'jobs', 'mil', 'mobi', 'museum', 'post',
+            'tel', 'travel', 'xxx']'''
+
+    #Second level
+    #https://raw.githubusercontent.com/gavingmiller/second-level-domains/master/SLDs.csv
 
     # Country Code TLD
-    cctlds_list = ['ac', 'ad', 'ae', 'af', 'ag', 'ai', 'al', 'am', 'an', 'ao', 'aq', 'ar', 'as', 'at', 'au', 'aw', 'ax', 'az',
-                   'ba', 'bb', 'bd', 'be', 'bf', 'bg', 'bh', 'bi', 'bj', 'bl', 'bm', 'bn', 'bo', 'bq', 'br', 'bs', 'bt', 'bv',
-                   'bw', 'by', 'bz', 'ca', 'cc', 'cd', 'cf', 'cg', 'ch', 'ci', 'ck', 'cl', 'cm', 'cn', 'co', 'cr', 'cu', 'cv',
-                   'cw', 'cx', 'cy', 'cz', 'de', 'dj', 'dk', 'dm', 'do', 'dz', 'ec', 'ee', 'eg', 'eh', 'er', 'es', 'et', 'eu',
-                   'fi', 'fj', 'fk', 'fm', 'fo', 'fr', 'ga', 'gb', 'gd', 'ge', 'gf', 'gg', 'gh', 'gi', 'gl', 'gm', 'gn', 'gp',
-                   'gq', 'gr', 'gs', 'gt', 'gu', 'gw', 'gy', 'hk', 'hm', 'hn', 'hr', 'ht', 'hu', 'id', 'ie', 'il', 'im', 'in',
-                   'io', 'iq', 'ir', 'is', 'it', 'je', 'jm', 'jo', 'jp', 'ke', 'kg', 'kh', 'ki', 'km', 'kn', 'kp', 'kr', 'kw',
-                   'ky', 'kz', 'la', 'lb', 'lc', 'li', 'lk', 'lr', 'ls', 'lt', 'lu', 'lv', 'ly', 'ma', 'mc', 'md', 'me', 'mf',
-                   'mg', 'mh', 'mk', 'ml', 'mm', 'mn', 'mo', 'mp', 'mq', 'mr', 'ms', 'mt', 'mu', 'mv', 'mw', 'mx', 'my', 'mz',
-                   'na', 'nc', 'ne', 'nf', 'ng', 'ni', 'nl', 'no', 'np', 'nr', 'nu', 'nz', 'om', 'pa', 'pe', 'pf', 'pg', 'ph',
-                   'pk', 'pl', 'pm', 'pn', 'pr', 'ps', 'pt', 'pw', 'py', 'qa', 're', 'ro', 'rs', 'ru', 'rw', 'sa', 'sb', 'sc',
-                   'sd', 'se', 'sg', 'sh', 'si', 'sj', 'sk', 'sl', 'sm', 'sn', 'so', 'sr', 'ss', 'st', 'su', 'sv', 'sx', 'sy',
-                   'sz', 'tc', 'td', 'tf', 'tg', 'th', 'tj', 'tk', 'tl', 'tm', 'tn', 'to', 'tp', 'tr', 'tt', 'tv', 'tw', 'tz',
-                   'ua', 'ug', 'uk', 'um', 'us', 'uy', 'uz', 'va', 'vc', 've', 'vg', 'vi', 'vn', 'vu', 'wf', 'ws', 'ye', 'yt',
-                   'za', 'zm', 'zw']
-    
-    for cctld in cctlds_list:
-        if cctld not in all_tlds:
-            all_tlds.append(cctld)
+    cctld = ['ac', 'ad', 'ae', 'af', 'ag', 'ai', 'al', 'am', 'an', 'ao', 'aq', 'ar', 'as', 'at', 'au', 'aw', 'ax', 'az',
+             'ba', 'bb', 'bd', 'be', 'bf', 'bg', 'bh', 'bi', 'bj', 'bl', 'bm', 'bn', 'bo', 'bq', 'br', 'bs', 'bt', 'bv',
+             'bw', 'by', 'bz', 'ca', 'cc', 'cd', 'cf', 'cg', 'ch', 'ci', 'ck', 'cl', 'cm', 'cn', 'co', 'cr', 'cu', 'cv',
+             'cw', 'cx', 'cy', 'cz', 'de', 'dj', 'dk', 'dm', 'do', 'dz', 'ec', 'ee', 'eg', 'eh', 'er', 'es', 'et', 'eu',
+             'fi', 'fj', 'fk', 'fm', 'fo', 'fr', 'ga', 'gb', 'gd', 'ge', 'gf', 'gg', 'gh', 'gi', 'gl', 'gm', 'gn', 'gp',
+             'gq', 'gr', 'gs', 'gt', 'gu', 'gw', 'gy', 'hk', 'hm', 'hn', 'hr', 'ht', 'hu', 'id', 'ie', 'il', 'im', 'in',
+             'io', 'iq', 'ir', 'is', 'it', 'je', 'jm', 'jo', 'jp', 'ke', 'kg', 'kh', 'ki', 'km', 'kn', 'kp', 'kr', 'kw',
+             'ky', 'kz', 'la', 'lb', 'lc', 'li', 'lk', 'lr', 'ls', 'lt', 'lu', 'lv', 'ly', 'ma', 'mc', 'md', 'me', 'mf',
+             'mg', 'mh', 'mk', 'ml', 'mm', 'mn', 'mo', 'mp', 'mq', 'mr', 'ms', 'mt', 'mu', 'mv', 'mw', 'mx', 'my', 'mz',
+             'na', 'nc', 'ne', 'nf', 'ng', 'ni', 'nl', 'no', 'np', 'nr', 'nu', 'nz', 'om', 'pa', 'pe', 'pf', 'pg', 'ph',
+             'pk', 'pl', 'pm', 'pn', 'pr', 'ps', 'pt', 'pw', 'py', 'qa', 're', 'ro', 'rs', 'ru', 'rw', 'sa', 'sb', 'sc',
+             'sd', 'se', 'sg', 'sh', 'si', 'sj', 'sk', 'sl', 'sm', 'sn', 'so', 'sr', 'ss', 'st', 'su', 'sv', 'sx', 'sy',
+             'sz', 'tc', 'td', 'tf', 'tg', 'th', 'tj', 'tk', 'tl', 'tm', 'tn', 'to', 'tp', 'tr', 'tt', 'tv', 'tw', 'tz',
+             'ua', 'ug', 'uk', 'um', 'us', 'uy', 'uz', 'va', 'vc', 've', 'vg', 'vi', 'vn', 'vu', 'wf', 'ws', 'ye', 'yt',
+             'za', 'zm', 'zw']
+
+    total_tlds = []
+    try:
+        resp = requests.get('http://data.iana.org/TLD/tlds-alpha-by-domain.txt')
+    except Exception as ex:
+        exit(3)
+    for tld in resp.text.split('\n'):
+        if '#' not in tld.strip() and tld.strip() != '' and tld.strip().lower() not in cctld:
+            total_tlds.append(tld.strip().lower())
 
     domain_main = domain.split(".")[0]
 
     # Let the user know how long it could take
-    all_tlds_len = len(all_tlds)
+    all_tlds_len = len(total_tlds) + len(cctld)
     duration = time.strftime('%H:%M:%S', time.gmtime(all_tlds_len / 3))
     print_status(f"The operation could take up to: {duration}")
 
     if verbose:
-        for tld in all_tlds:
+        for tld in total_tlds:
             print_status(f'Trying: {domain_main}.{tld}')
-
+        for cc in cctld:
+            print_status(f'Trying: {domain_main}.{cc}')
     try:
         with futures.ThreadPoolExecutor(max_workers=thread_num) as executor:
-            future_results = {**{executor.submit(res.get_ip, f'{domain_main}.{tld}'): tld for tld in all_tlds}}
+            future_results = {**{executor.submit(res.get_ip, f'{domain_main}.{tld}'): tld for tld in total_tlds},
+                              **{executor.submit(res.get_ip, f'{domain_main}.{cc}'): cc for cc in cctld},
+                              **{executor.submit(res.get_soa, f'{domain_main}.{tld}'): tld for tld in total_tlds},
+                              **{executor.submit(res.get_soa, f'{domain_main}.{cc}'): cc for cc in cctld}}
 
             brtdata = [future.result() for future in futures.as_completed(future_results)]
             brtdata = [result for result in brtdata if len(result) > 0]
@@ -336,7 +321,7 @@ def brute_tlds(res, domain, verbose=False, thread_num=None):
     found_tlds = []
     for rcd_found in brtdata:
         for type_, name_, addr_ in rcd_found:
-            if type_ in ['A', 'AAAA']:
+            if type_ in ['A', 'AAAA', 'SOA']:
                 print_good(f"\t {type_} {name_} {addr_}")
                 found_tlds.append([{"type": type_, "name": name_, "address": addr_}])
     print_good(f"{len(found_tlds)} Records Found")
@@ -992,7 +977,8 @@ def general_enum(res, domain, do_axfr, do_bing, do_yandex, do_spf, do_whois, do_
                                           "type": found_soa_record[0],
                                           "mname": found_soa_record[1], "address": found_soa_record[2]}])
 
-                ip_for_whois.append(found_soa_record[2])
+                if found_soa_record[2]:
+                    ip_for_whois.append(found_soa_record[2])
 
         except Exception:
             print_error(f"Could not Resolve SOA Record for {domain}")
