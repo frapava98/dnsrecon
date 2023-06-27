@@ -472,7 +472,7 @@ def brute_domain(res, dictfile, dom, filter_=None, verbose=False, ignore_wildcar
                 tmp = f"{line.strip()}-{dom.strip()}".split('.')
                 too_long = False
                 for elem in tmp:
-                    if len(elem) > 63:
+                    if len(elem) > 63 or (('ö' in elem or 'ä' in elem or 'ü' in elem) and (len(elem) > 55 or 'xn--' in elem)):
                         too_long = True
                         print(elem)
                 if not too_long:

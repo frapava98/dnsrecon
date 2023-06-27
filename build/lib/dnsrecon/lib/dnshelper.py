@@ -210,22 +210,22 @@ class DnsHelper:
 
         return result
 
-    def get_soa(self, hostname=None):
+    def get_soa(self):
         """
         Function for SOA Record resolving. Returns all SOA records. Returns also the IP
         address of the host both in IPv4 and IPv6. Returns an Array.
         """
         queryfunc = dns.query.tcp if self._is_tcp else dns.query.udp
-        if not hostname:
-            hostname = self._domain
+
         try:
-            querymsg = dns.message.make_query(hostname, dns.rdatatype.SOA)
+            querymsg = dns.message.make_query(self._domain, dns.rdatatype.SOA)
             response = queryfunc(querymsg, self._res.nameservers[0], self._res.timeout)
         except (dns.exception.Timeout, dns.resolver.NXDOMAIN,
                 dns.resolver.YXDOMAIN, dns.resolver.NoAnswer,
                 dns.resolver.NoNameservers, dns.query.BadResponse,
-                socket.error):
-            print_error('Error while resolving SOA record.')
+                socket.error) as e:
+            print_error(f'Exception "{e}" while resolving SOA record.')
+            print_error(f'Error while resolving SOA while using {self._res.nameservers[0]} as nameserver.')
             return []
 
         # ~ we consider both response sections
@@ -246,7 +246,6 @@ class DnsHelper:
 
                 mname_ = strip_last_dot(record[0].mname.to_text())
 
-                tmp = False
                 for record_type in record_types:
                     a_or_aaaa_answers = self.get_answers(record_type, mname_)
 
@@ -255,9 +254,6 @@ class DnsHelper:
 
                     for a_or_aaaa_answer in a_or_aaaa_answers:
                         result.append(['SOA', mname_, a_or_aaaa_answer.address])
-                        tmp = True
-                if not tmp:
-                    result.append(['SOA', mname_, None])
 
         return result
 
@@ -511,7 +507,7 @@ class DnsHelper:
                     for rdata in rdataset:
                         target = strip_last_dot(rdata.target.to_text())
 
-                        for type_, name_, addr in self.get_ip(target):
+                        for type_, name_, addr_ in self.get_ip(target):
                             if type_ in ['A', 'AAAA']:
                                 print_status(f"\t CNAME {fqdn_} {target} {addr_}")
                                 zone_records.append({'zone_server': ns_srv, 'type': 'CNAME',

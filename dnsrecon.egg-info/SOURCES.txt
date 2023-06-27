@@ -14,6 +14,7 @@ dnsrecon.egg-info/PKG-INFO
 dnsrecon.egg-info/SOURCES.txt
 dnsrecon.egg-info/dependency_links.txt
 dnsrecon.egg-info/entry_points.txt
+dnsrecon.egg-info/requires.txt
 dnsrecon.egg-info/top_level.txt
 dnsrecon/lib/__init__.py
 dnsrecon/lib/bingenum.py
