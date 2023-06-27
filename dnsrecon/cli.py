@@ -18,7 +18,7 @@
 #    along with this program; if not, write to the Free Software
 #    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-__version__ = '1.1.0'
+__version__ = '1.1.4'
 __author__ = 'Carlos Perez, Carlos_Perez@darkoperator.com'
 
 __doc__ = """
@@ -78,22 +78,25 @@ def process_range(arg):
     Function will take a string representation of a range for IPv4 or IPv6 in
     CIDR or Range format and return a list of IPs.
     """
-    try:
-        ip_list = None
-        range_vals = []
-        if re.match(r"\S*/\S*", arg):
-            ip_list = IPNetwork(arg)
+    ip_list = []
 
-        elif re.match(r"\S*-\S*", arg):
-            range_vals.extend(arg.split("-"))
-            if len(range_vals) == 2:
-                ip_list = IPRange(range_vals[0], range_vals[1])
-        else:
-            print_error("Range provided is not valid")
-            return []
-    except Exception:
-        print_error("Range provided is not valid")
-        return []
+    ranges_raw_list = list(set(arg.strip().split(",")))
+    for entry in ranges_raw_list:
+        try:
+            range_vals = []
+            if re.match(r"\S*/\S*", entry):
+                ip_list.append(IPNetwork(entry))
+
+            elif re.match(r"\S*-\S*", entry):
+                range_vals.extend(entry.split("-"))
+                if len(range_vals) == 2:
+                    ip_list.append(IPRange(range_vals[0], range_vals[1]))
+            else:
+                print_error(f"Range: {entry} provided is not valid")
+        except Exception:
+            print(Exception)
+            print_error(f"Range: {entry} provided is not valid")
+
     return ip_list
 
 
@@ -373,28 +376,28 @@ def brute_srv(res, domain, verbose=False, thread_num=None):
 
     try:
         with futures.ThreadPoolExecutor(max_workers=thread_num) as executor:
-            future_results = {executor.submit(res.get_srv, srvtype + domain): srvtype for srvtype in srvrcd}
-            brtdata = [future.result() for future in futures.as_completed(future_results)]
             if verbose:
                 for srvtype in srvrcd:
                     srvtype_domain = srvtype + domain
                     print_status(f"Trying {srvtype_domain}...")
+            future_results = {executor.submit(res.get_srv, srvtype + domain): srvtype for srvtype in srvrcd}
+            # Display logs as soon as a thread is finished
+            for future in futures.as_completed(future_results):
+                res = future.result()
+                for type_, name_, target_, addr_, port_, priority_ in res:
+                    returned_records.append({"type": type_,
+                                             "name": name_,
+                                             "target": target_,
+                                             "address": addr_,
+                                             "port": port_})
+                    print_good(f"\t {type_} {name_} {target_} {addr_} {port_}")
     except Exception as e:
         print_error(e)
 
-    if brtdata:
-        for rcd_found in brtdata:
-            for type_, name_, target_, addr_, port_, priority_ in rcd_found:
-                returned_records.append({"type": type_,
-                                         "name": name_,
-                                         "target": target_,
-                                         "address": addr_,
-                                         "port": port_})
-                print_good(f"\t {type_} {name_} {target_} {addr_} {port_}")
+    if len(returned_records) > 0:
+        print_good(f"{len(returned_records)} Records Found")
     else:
         print_error(f"No SRV Records Found for {domain}")
-
-    print_good(f"{len(returned_records)} Records Found")
 
     return returned_records
 
@@ -408,37 +411,36 @@ def brute_reverse(res, ip_list, verbose=False, thread_num=None):
     brtdata = []
     returned_records = []
 
-    print_status("Performing Reverse Lookup from {0} to {1}".format(ip_list[0], ip_list[-1]))
+    for i in range(len(ip_list)):
+        start_ip = ip_list[i][0]
+        end_ip = ip_list[i][-1]
+        print_status("Performing Reverse Lookup from {0} to {1}".format(start_ip, end_ip))
 
-    # Resolve each IP in a separate thread in groups of 255 hosts.
+        # Resolve each IP in a separate thread in groups of 255 hosts.
 
-    ip_range = range(len(ip_list) - 1)
-    ip_group_size = 255
-    for ip_group in [ip_range[i:i + ip_group_size] for i in range(0, len(ip_range), ip_group_size)]:
+        ip_range = range(len(ip_list[i]) - 1)
+        ip_group_size = 255
+        for ip_group in [ip_range[j:j + ip_group_size] for j in range(0, len(ip_range), ip_group_size)]:
 
-        try:
+            try:
+                if verbose:
+                    for x in ip_group:
+                        ipaddress = str(ip_list[x])
+                        print_status(f"Trying {ipaddress}")
 
-            with futures.ThreadPoolExecutor(max_workers=thread_num) as executor:
-                future_results = {executor.submit(res.get_ptr, str(ip_list[x])): x for x in ip_group}
-                brtdata = [future.result() for future in futures.as_completed(future_results)]
-                # Filter out results that are None
-                brtdata = [result for result in brtdata if result]
+                with futures.ThreadPoolExecutor(max_workers=thread_num) as executor:
+                    future_results = {executor.submit(res.get_ptr, str(ip_list[i][x])): x for x in ip_group}
+                    # Display logs as soon as a thread is finished
+                    for future in futures.as_completed(future_results):
+                        res = future.result()
+                        for type_, name_, addr_ in res:
+                            returned_records.append([{'type': type_, 'name': name_, 'address': addr_}])
+                            print_good(f"\t {type_} {name_} {addr_}")
 
-            if verbose:
-                for x in ip_group:
-                    ipaddress = str(ip_list[x])
-                    print_status(f"Trying {ipaddress}")
-
-        except Exception as e:
-            print_error(e)
-
-        for rcd_found in brtdata:
-            for type_, name_, addr_ in rcd_found:
-                returned_records.append([{'type': type_, 'name': name_, 'address': addr_}])
-                print_good(f"\t {type_} {name_} {addr_}")
+            except Exception as e:
+                print_error(e)
 
     print_good(f"{len(returned_records)} Records Found")
-
     return returned_records
 
 
@@ -480,32 +482,30 @@ def brute_domain(res, dictfile, dom, filter_=None, verbose=False, ignore_wildcar
                 print_status(f"Trying {target}")
         with futures.ThreadPoolExecutor(max_workers=thread_num) as executor:
             future_results = {executor.submit(res.get_ip, target): target for target in targets}
-            brtdata = [future.result() for future in futures.as_completed(future_results)]
-
-    # Process the output of the threads.
-    for rcd_found in brtdata:
-        for type_, name_, address_or_target_ in rcd_found:
-            print_and_append = False
-            found_dict = {"type": type_, "name": name_}
-            if type_ in ['A', 'AAAA']:
-                # Filter Records if filtering was enabled
-                if filter_:
-                    if wildcard_set and address_or_target_ not in wildcard_set:
+            # Display logs as soon as a thread is finished
+            for future in futures.as_completed(future_results):
+                res = future.result()
+                for type_, name_, address_or_target_ in res:
+                    print_and_append = False
+                    found_dict = {"type": type_, "name": name_}
+                    if type_ in ['A', 'AAAA']:
+                        # Filter Records if filtering was enabled
+                        if filter_:
+                            if not wildcard_set or address_or_target_ not in wildcard_set:
+                                print_and_append = True
+                                found_dict["address"] = address_or_target_
+                        else:
+                            print_and_append = True
+                            found_dict["address"] = address_or_target_
+                    elif type_ == 'CNAME':
                         print_and_append = True
-                        found_dict["address"] = address_or_target_
-                else:
-                    print_and_append = True
-                    found_dict["address"] = address_or_target_
-            elif type_ == 'CNAME':
-                print_and_append = True
-                found_dict["target"] = address_or_target_
+                        found_dict["target"] = address_or_target_
 
-            if print_and_append:
-                print_good(f"\t {type_} {name_} {address_or_target_}")
-                found_hosts.append(found_dict)
+                    if print_and_append:
+                        print_good(f"\t {type_} {name_} {address_or_target_}")
+                        found_hosts.append(found_dict)
 
-    # Clear Global variable
-    brtdata = []
+                brtdata.append(res)
 
     print_good(f"{len(found_hosts)} Records Found")
     return found_hosts
@@ -873,7 +873,7 @@ def dns_sec_check(domain, res):
     Check if a zone is configured for DNSSEC and if so if NSEC or NSEC3 is used.
     """
     try:
-        answer = res.resolve(domain, 'DNSKEY')
+        answer = res.resolve(domain, 'DNSKEY', res._res.nameservers[0])
         print_status("DNSSEC is configured for {0}".format(domain))
         nsectype = get_nsec_type(domain, res)
         print_status("DNSKEYs:")
@@ -914,8 +914,8 @@ def check_bindversion(res, ns_server, timeout):
         request = dns.message.make_query('version.bind', 'txt', 'ch')
         try:
             response = res.query(request, ns_server, timeout=timeout, one_rr_per_rrset=True)
-            if len(response.answer) > 0 and 'items' in response.answer[0]:
-                version = response.answer[0].items[0].strings[0]
+            if len(response.answer) > 0:
+                version = response.answer[0].to_text().split(" ")[-1]
                 print_status(f"\t Bind Version for {ns_server} {version}")
 
         except (dns.resolver.NXDOMAIN, dns.exception.Timeout, dns.resolver.NoAnswer, socket.error,
@@ -975,7 +975,7 @@ def general_enum(res, domain, do_axfr, do_bing, do_yandex, do_spf, do_whois, do_
             if len(returned_records) == 0:
                 from_zt = True
 
-    # If a Zone Trasfer was possible there is no need to enumerate the rest
+    # If a Zone Transfer was possible there is no need to enumerate the rest
     if from_zt is None:
 
         # Check if DNSSEC is configured
@@ -995,7 +995,11 @@ def general_enum(res, domain, do_axfr, do_bing, do_yandex, do_spf, do_whois, do_
                 ip_for_whois.append(found_soa_record[2])
 
         except Exception:
-            print_error(f"Could not Resolve SOA Record for {domain}")
+            print(found_soa_records)
+            if found_soa_records == []:
+                print_error(f"No SOA records found for {domain}")
+            else:
+                print_error(f"Could not Resolve SOA Record for {domain}")
 
         # Enumerate Name Servers
         try:
@@ -1438,7 +1442,7 @@ def main():
         parser.add_argument("-d", "--domain", type=str, dest="domain", help="Target domain.")
         parser.add_argument("-n", "--name_server", type=str, dest="ns_server", help="Domain server to use. If none is given, the SOA of the target will be used. Multiple servers can be specified using a comma separated list.")
         parser.add_argument("-r", "--range", type=str, dest="range", help="IP range for reverse lookup brute force in formats   (first-last) or in (range/bitmask).")
-        parser.add_argument("-D", "--dictionary", type=str, dest="dictionary", help="Dictionary file of subdomain and hostnames to use for brute force. Filter out of brute force domain lookup, records that resolve to the wildcard defined IP address when saving records.")
+        parser.add_argument("-D", "--dictionary", type=str, dest="dictionary", help="Dictionary file of subdomain and hostnames to use for brute force.")
         parser.add_argument("-f", help="Filter out of brute force domain lookup, records that resolve to the wildcard defined IP address when saving records.", action="store_true")
         parser.add_argument("-a", help="Perform AXFR with standard enumeration.", action="store_true")
         parser.add_argument("-s", help="Perform a reverse lookup of IPv4 ranges in the SPF record with standard enumeration.", action="store_true")
@@ -1590,13 +1594,6 @@ Possible types:
     if arguments.ns_server:
         ns_raw_list = list(set(arguments.ns_server.strip().split(",")))
         for entry in ns_raw_list:
-            if check_nxdomain_hijack(entry):
-                continue
-
-            if netaddr.valid_glob(entry):
-                ns_server.append(entry)
-                continue
-
             # Resolve in the case if FQDN
             answer = socket_resolv(entry)
             # Check we actually got a list
@@ -1606,6 +1603,13 @@ Possible types:
             else:
                 # Exit if we cannot resolve it
                 print_error(f"Could not resolve NS server provided and server doesn't appear to be an IP: {entry}")
+
+            if check_nxdomain_hijack(socket.gethostbyname(entry)):
+                continue
+
+            if netaddr.valid_glob(entry):
+                ns_server.append(entry)
+                continue
 
         # User specified name servers but none of them validated
         if not ns_server:

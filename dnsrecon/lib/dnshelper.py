@@ -223,8 +223,9 @@ class DnsHelper:
         except (dns.exception.Timeout, dns.resolver.NXDOMAIN,
                 dns.resolver.YXDOMAIN, dns.resolver.NoAnswer,
                 dns.resolver.NoNameservers, dns.query.BadResponse,
-                socket.error):
-            print_error('Error while resolving SOA record.')
+                socket.error) as e:
+            print_error(f'Exception "{e}" while resolving SOA record.')
+            print_error(f'Error while resolving SOA while using {self._res.nameservers[0]} as nameserver.')
             return []
 
         # ~ we consider both response sections
@@ -506,7 +507,7 @@ class DnsHelper:
                     for rdata in rdataset:
                         target = strip_last_dot(rdata.target.to_text())
 
-                        for type_, name_, addr in self.get_ip(target):
+                        for type_, name_, addr_ in self.get_ip(target):
                             if type_ in ['A', 'AAAA']:
                                 print_status(f"\t CNAME {fqdn_} {target} {addr_}")
                                 zone_records.append({'zone_server': ns_srv, 'type': 'CNAME',
