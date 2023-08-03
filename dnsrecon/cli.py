@@ -271,13 +271,13 @@ def brute_tlds(res, domain, verbose=False, thread_num=None):
 
     # ALL TLD
     all_tlds = []
-    tlds_list = get_list('https://raw.githubusercontent.com/publicsuffix/list/master/public_suffix_list.dat', 'all_tld.txt')
+    tlds_list = get_list('https://raw.githubusercontent.com/publicsuffix/list/master/public_suffix_list.dat', 'lists/all_tld.txt')
     for tld in tlds_list.split('\n'):
         if '/' not in tld.strip() and tld.strip() != '':
             all_tlds.append(tld.strip().lower().replace('*.',''))
 
     # Top level domains
-    tlds_list = get_list('http://data.iana.org/TLD/tlds-alpha-by-domain.txt', 'tld.txt')
+    tlds_list = get_list('http://data.iana.org/TLD/tlds-alpha-by-domain.txt', 'lists/tld.txt')
     for tld in tlds_list.split('\n'):
         if '#' not in tld.strip() and tld.strip() != '':
             tmp = tld.strip().lower()
@@ -286,7 +286,7 @@ def brute_tlds(res, domain, verbose=False, thread_num=None):
                 all_tlds.append(tmp)
 
     # Second level domains
-    slds_list = get_list('https://raw.githubusercontent.com/gavingmiller/second-level-domains/master/SLDs.csv','sld.txt')
+    slds_list = get_list('https://raw.githubusercontent.com/gavingmiller/second-level-domains/master/SLDs.csv','lists/sld.txt')
     for sld in slds_list.split('\n'):
         if sld.strip() != '':
             tmp = sld.strip().lower().split(',')[1]
