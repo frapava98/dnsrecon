@@ -18,7 +18,7 @@
 #    along with this program; if not, write to the Free Software
 #    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-__version__ = '1.1.4'
+__version__ = '1.1.5'
 __author__ = 'Carlos Perez, Carlos_Perez@darkoperator.com'
 
 __doc__ = """
@@ -432,8 +432,8 @@ def brute_reverse(res, ip_list, verbose=False, thread_num=None):
                     future_results = {executor.submit(res.get_ptr, str(ip_list[i][x])): x for x in ip_group}
                     # Display logs as soon as a thread is finished
                     for future in futures.as_completed(future_results):
-                        res = future.result()
-                        for type_, name_, addr_ in res:
+                        res_ = future.result()
+                        for type_, name_, addr_ in res_:
                             returned_records.append([{'type': type_, 'name': name_, 'address': addr_}])
                             print_good(f"\t {type_} {name_} {addr_}")
 
